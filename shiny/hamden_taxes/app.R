@@ -5,14 +5,27 @@ df <- read_rds("all_streets_data_4_18_25_cleaned.rds")
 
 # Define UI
 ui <- fluidPage(
+  # Custom CSS for padding
+  # Custom CSS for padding
+  tags$style(HTML("
+    .top-section {
+      padding-bottom: 20px; /* Adjust the value as needed */
+    }
+    .output-padding {
+      padding-bottom: 20px; /* Adjust the value as needed */
+    }
+  ")),
+  
   # Application title
   titlePanel("Estimated property taxes with proposed mill rate"),
   
   # Top bar for introduction text
   fluidRow(
-    column(12,
-           h3("Tax Calculator"),
-           p("This app lets you estimate your property taxes for the year 2025 based on the proposed mill rate of 46.61. It also shows you how much your taxes would have been in 2024, and the increase in taxes for 2025.")
+    column(12, class = "top-section",
+           h3("Hamden Tax Calculator"),
+           p("This app lets you estimate your property taxes for the year 2025 based on the proposed mill rate of 46.61. It also shows you how much your taxes would have been in 2024 and the increase in taxes for 2025."),
+           tags$li("On the left, you can either search for an address or choose one from the downdown menu"),
+           tags$li("'Enter mill rate' uses the current proposed mill rate. You can enter your own mill rate to see property taxes are affected.")
     )
   ),
   
@@ -36,6 +49,7 @@ ui <- fluidPage(
       width = 8,  # 2/3 of the page
       h4("Output"),
       htmlOutput("string"),
+      div(class = "output-padding", htmlOutput("string")),
       
       fluidRow(
         column(6, plotOutput("plot1")),
