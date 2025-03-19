@@ -24,9 +24,8 @@ ui <- fluidPage(
     column(12, class = "top-section",
            h3("Hamden Tax Calculator"),
            p("This app lets you estimate your property taxes for the year 2025 based on the proposed mill rate of 46.61.
-             It also shows you how much your taxes would have been in 2024 and the increase in taxes for 2025.
-             The bottom h"),
-           tags$li("On the left, you can either search for an address or choose one from the downdown menu"),
+             It also shows you how much your taxes would have been in 2024 and the increase in taxes for 2025."),
+           tags$li("On the left, you can either search for an address or choose one from the dropdown menu"),
            tags$li("'Enter mill rate' uses the current proposed mill rate. You can enter your own mill rate to see property taxes are affected."),
            tags$li("Click the 'Generate Email' for a prewritten email template that includes numbers for the increase taxes for the property.")
     )
