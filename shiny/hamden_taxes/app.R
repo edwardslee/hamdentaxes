@@ -3,8 +3,6 @@ library(tidyverse)
 
 df <- read_rds("all_streets_data_4_18_25_cleaned.rds")
 
-list_addresses <- c("", df$address)
-
 # Define UI
 ui <- fluidPage(
   # Application title
@@ -13,8 +11,8 @@ ui <- fluidPage(
   # Top bar for introduction text
   fluidRow(
     column(12,
-           h3("Introduction"),
-           p("This is the introduction text for the Shiny app.")
+           h3("Tax Calculator"),
+           p("This app lets you estimate your property taxes for the year 2025 based on the proposed mill rate of 46.61. It also shows you how much your taxes would have been in 2024, and the increase in taxes for 2025.")
     )
   ),
   
@@ -24,12 +22,9 @@ ui <- fluidPage(
     sidebarPanel(
       width = 4,  # 1/3 of the page
       h4("Options"),
-      selectizeInput(inputId = "address",
-                     label = "Search and choose your address",
-                     list_addresses,
-                     selected = FALSE,
-                     multiple = FALSE,
-                     options = list(create = TRUE)),
+      # Using a textInput for search and a selectInput for selection
+      textInput("address_search", "Search for your address", ""),
+      selectInput("address", "Choose your address", choices = NULL),
     ),
     
     # Right sidebar for strings and graphs
@@ -47,14 +42,49 @@ ui <- fluidPage(
 )
 
 # Define server logic
-server <- function(input, output) {
+server <- function(input, output, session) {
+  
+  # Create a reactive expression for filtered addresses
+  filtered_addresses <- reactive({
+    # Get the search term
+    search_term <- input$address_search
+    
+    # If search is empty, return empty vector
+    if (is.null(search_term) || search_term == "") {
+      return(character(0))
+    }
+    
+    # Filter addresses based on search input
+    matches <- df %>%
+      filter(str_detect(tolower(address), tolower(search_term))) %>%
+      pull(address)
+    
+    # Limit results to prevent overwhelming the UI
+    if (length(matches) > 100) {
+      matches <- matches[1:100]
+    }
+    
+    return(matches)
+  })
+  
+  # Update the select input when the search changes
+  observe({
+    choices <- filtered_addresses()
+    updateSelectInput(session, "address", choices = choices)
+  })
   
   home_chooser <- reactive({df |>
       filter(address == input$address)
   })
 
   output$string <- renderText({
+    req(input$address)  # Only proceed if an address is selected
+    
     df_home <- home_chooser()
+    
+    # Check if we have valid data
+    if (nrow(df_home) == 0) return("Please select a valid address")
+    
     prop_tax_new <- df_home[["property_tax_new"]] |> round()
     prop_tax_old <- df_home[["property_tax_old"]] |> round()
     appraisal_new <- df_home[["appraisal_new"]] |> round()  
@@ -70,7 +100,7 @@ server <- function(input, output) {
     appraisal_old <- appraisal_old |> formatC(format="d", big.mark=",")
     monthly_payment <- formatC(monthly_payment, digits = 2, format = "f")
     
-    string <- str_c("With the proposed mill rate of 55.61, your property taxes will be $",
+    string <- str_c("With the proposed mill rate of 46.61, your property taxes will be $",
                     prop_tax_new,
                     " based on the current value of your home of $",
                     appraisal_new, ".<br/><br/>",
@@ -91,7 +121,11 @@ server <- function(input, output) {
   
   
   output$plot1 <- renderPlot({
+    req(input$address)  # Only proceed if an address is selected
     df_home <- home_chooser()
+    
+    # Check if we have data
+    if(nrow(df_home) == 0) return(NULL)
     
     df_home <- df_home |>
       rename(`Proposed New Property Tax` = property_tax_new,
@@ -106,11 +140,19 @@ server <- function(input, output) {
     ymax_tax <- ceiling(ymax_tax / 1000) * 1000 # round to nearest thousand that's larger
     ymax_tax <- ifelse(ymax_tax %% 2 != 0, ymax_tax + 2000, ymax_tax + 1000)
     
-   
-    p1 <- df_home |>
+    # First create the long data
+    plot_data <- df_home |>
       pivot_longer(cols = -address) |>
-      filter(grepl("Property", name)) |>
-      mutate(group = as_factor(1:2)) |>
+      filter(grepl("Property", name))
+    
+    # Only add the group if we have the right number of rows
+    if(nrow(plot_data) == 2) {
+      plot_data <- plot_data |> mutate(group = as_factor(1:2))
+    } else {
+      plot_data <- plot_data |> mutate(group = as_factor(1))
+    }
+    
+    p1 <- plot_data |>
       ggplot() +
       geom_col(aes(name, value, fill = group), width = 0.65) +
       xlab("") +
@@ -125,7 +167,11 @@ server <- function(input, output) {
   
   
   output$plot2 <- renderPlot({
+    req(input$address)  # Only proceed if an address is selected
     df_home <- home_chooser()
+    
+    # Check if we have data
+    if(nrow(df_home) == 0) return(NULL)
     
     df_home <- df_home |>
       rename(`Proposed New Property Tax` = property_tax_new,
@@ -139,14 +185,23 @@ server <- function(input, output) {
     ymax_appraisal <- df_home$`Appraisal - 2025`
     ymax_appraisal <- ceiling(ymax_appraisal / 25000) * 25000 + 10000
     
-    p2 <- df_home |>
+    # First create the long data
+    plot_data <- df_home |>
       pivot_longer(cols = -address) |>
-      filter(grepl("Appraisal", name)) |>
-      mutate(group = as_factor(1:2)) |>
+      filter(grepl("Appraisal", name))
+    
+    # Only add the group if we have the right number of rows
+    if(nrow(plot_data) == 2) {
+      plot_data <- plot_data |> mutate(group = as_factor(1:2))
+    } else {
+      plot_data <- plot_data |> mutate(group = as_factor(1))
+    }
+    
+    p2 <- plot_data |>
       ggplot() +
       geom_col(aes(name, value, fill = group), width = 0.65) +
       xlab("") +
-      ylab("Appraisal Tax") +
+      ylab("Appraisal Value") +
       scale_fill_manual(values = c("#73b0d9", "#a9e1e6")) +
       scale_y_continuous(breaks = seq(0, ymax_appraisal, by = 50000)) +
       theme_classic() +
@@ -154,43 +209,6 @@ server <- function(input, output) {
     
     p2
   })
-
-
-
-  # p1 <- df_home |>
-  #   pivot_longer(cols = -address) |>
-  #   filter(grepl("Property", name)) |>
-  #   mutate(group = as_factor(1:2)) |>
-  #   ggplot() +
-  #   geom_col(aes(name, value, fill = group), width = 0.65) +
-  #   xlab("") +
-  #   ylab("Property Tax") +
-  #   scale_fill_manual(values = c("#fc4b11", "#b1eb61")) +
-  #   scale_y_continuous(breaks = seq(0, ymax_tax, by = 2000)) + 
-  #   theme_classic() +
-  #   theme(legend.position="none")
-  # 
-  # # plot for 2024 and new appraisal  
-  p2 <- df_home |>
-    pivot_longer(cols = -address) |>
-    filter(grepl("Appraisal", name)) |>
-    mutate(group = as_factor(1:2)) |>
-    ggplot() +
-    geom_col(aes(name, value, fill = group), width = 0.65) +
-    xlab("") +
-    ylab("Appraisal Value") +
-    scale_fill_manual(values = c("#73b0d9", "#a9e1e6")) +
-    scale_y_continuous(breaks = seq(0, ymax_appraisal, by = 50000)) +
-    theme_classic() +
-    theme(legend.position="none")
-  # 
-  # output$plot1 <- renderPlot({
-  #   p1
-  # })
-  # 
-  # output$plot2 <- renderPlot({
-  #   p2
-  # })
 }
 
 # Run the application 
