@@ -25,6 +25,10 @@ ui <- fluidPage(
       # Using a textInput for search and a selectInput for selection
       textInput("address_search", "Search for your address", ""),
       selectInput("address", "Choose your address", choices = NULL),
+      # Add mill rate input
+      numericInput("mill_rate", "Enter mill rate:", 
+                   value = 46.61, min = 20, max = 100, step = 0.01),
+      helpText("Default proposed mill rate is 46.61")
     ),
     
     # Right sidebar for strings and graphs
@@ -77,6 +81,26 @@ server <- function(input, output, session) {
       filter(address == input$address)
   })
 
+  # Calculate property tax based on chosen mill rate
+  calculated_tax <- reactive({
+    req(input$address)
+    home_data <- home_chooser()
+    
+    # Calculate new tax based on input mill rate
+    new_tax <- (home_data$assessment_new / 1000) * input$mill_rate
+    
+    # Original 2024 tax stays the same
+    old_tax <- home_data$property_tax_old
+    
+    list(
+      new_tax = new_tax,
+      old_tax = old_tax,
+      diff = new_tax - old_tax,
+      perc_inc = (new_tax - old_tax) / old_tax * 100,
+      monthly = (new_tax - old_tax) / 12
+    )
+  })
+
   output$string <- renderText({
     req(input$address)  # Only proceed if an address is selected
     
@@ -85,13 +109,15 @@ server <- function(input, output, session) {
     # Check if we have valid data
     if (nrow(df_home) == 0) return("Please select a valid address")
     
-    prop_tax_new <- df_home[["property_tax_new"]] |> round()
-    prop_tax_old <- df_home[["property_tax_old"]] |> round()
-    appraisal_new <- df_home[["appraisal_new"]] |> round()  
-    appraisal_old <- df_home[["appraisal_old"]] |> round()  
-    prop_tax_diff <- prop_tax_new - prop_tax_old 
-    prop_perc_inc <- formatC(prop_tax_diff / prop_tax_old * 100, digits = 1, format = "f")
-    monthly_payment <- prop_tax_diff / 12 |> round()
+    tax_data <- calculated_tax()
+    
+    prop_tax_new <- round(tax_data$new_tax)
+    prop_tax_old <- round(df_home[["property_tax_old"]])
+    appraisal_new <- round(df_home[["appraisal_new"]])
+    appraisal_old <- round(df_home[["appraisal_old"]])
+    prop_tax_diff <- round(tax_data$diff)
+    prop_perc_inc <- formatC(tax_data$perc_inc, digits = 1, format = "f")
+    monthly_payment <- round(tax_data$monthly)
     
     # adding commas within the numbers for easier reading
     prop_tax_new <- prop_tax_new |> formatC(format="d", big.mark=",")
@@ -100,21 +126,21 @@ server <- function(input, output, session) {
     appraisal_old <- appraisal_old |> formatC(format="d", big.mark=",")
     monthly_payment <- formatC(monthly_payment, digits = 2, format = "f")
     
-    string <- str_c("With the proposed mill rate of 46.61, your property taxes will be $",
-                    prop_tax_new,
-                    " based on the current value of your home of $",
-                    appraisal_new, ".<br/><br/>",
-                    "In 2024, your property taxes was $",
-                    prop_tax_old,
-                    ", and your home was valued at $",
-                    appraisal_old, ".<br/><br/>",
-                    "Your property taxes will increase by $",
-                    prop_tax_diff,
-                    ", which is a ",
-                    prop_perc_inc, 
-                    "% increase, and you will pay an extra $",
-                    monthly_payment,
-                    " per month in taxes.")
+    string <- str_c("With a mill rate of ", input$mill_rate, ", your property taxes will be $",
+                   prop_tax_new,
+                   " based on the current value of your home of $",
+                   appraisal_new, ".<br/><br/>",
+                   "In 2024, your property taxes was $",
+                   prop_tax_old,
+                   ", and your home was valued at $",
+                   appraisal_old, ".<br/><br/>",
+                   "Your property taxes will increase by $",
+                   prop_tax_diff,
+                   ", which is a ",
+                   prop_perc_inc, 
+                   "% increase, and you will pay an extra $",
+                   monthly_payment,
+                   " per month in taxes.")
     string
   })
   
@@ -123,13 +149,15 @@ server <- function(input, output, session) {
   output$plot1 <- renderPlot({
     req(input$address)  # Only proceed if an address is selected
     df_home <- home_chooser()
+    tax_data <- calculated_tax()
     
     # Check if we have data
     if(nrow(df_home) == 0) return(NULL)
     
+    # Create a modified df_home with the calculated tax
     df_home <- df_home |>
-      rename(`Proposed New Property Tax` = property_tax_new,
-             `2024 Property Tax` = property_tax_old,
+      mutate(`Proposed New Property Tax` = tax_data$new_tax) |>
+      rename(`2024 Property Tax` = property_tax_old,
              `Appraisal - 2025` = appraisal_new,
              `Appraisal - 2024` = appraisal_old,
              `Tax Assessment - 2025` = assessment_new,
