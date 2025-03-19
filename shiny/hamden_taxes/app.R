@@ -25,9 +25,9 @@ ui <- fluidPage(
            h3("Hamden Tax Calculator"),
            p("This app lets you estimate your property taxes for the year 2025 based on the proposed mill rate of 46.61.
              It also shows you how much your taxes would have been in 2024 and the increase in taxes for 2025."),
-           tags$li("On the left, you can either search for an address or choose one from the dropdown menu"),
-           tags$li("'Enter mill rate' uses the current proposed mill rate. You can enter your own mill rate to see property taxes are affected."),
-           tags$li("Click the 'Generate Email' for a prewritten email template that includes numbers for the increase taxes for the property.")
+           tags$li("On the left, search for an address and then choose one from the dropdown menu"),
+           tags$li("'Enter mill rate' uses the current proposed mill rate. You can enter your own mill rate to see property taxes are affected.")#,
+           # tags$li("Click the 'Generate Email' for a prewritten email template that includes numbers for the increase taxes for the property.")
     )
   ),
   
@@ -43,9 +43,9 @@ ui <- fluidPage(
       # Add mill rate input
       numericInput("mill_rate", "Enter mill rate:", 
                    value = 46.61, min = 20, max = 100, step = 0.01),
-      helpText("Default proposed mill rate is 46.61"),
+      helpText("Default proposed mill rate is 46.61")#,
       # Add action button
-      actionButton("generate_email", "Generate Email")
+      # actionButton("generate_email", "Generate Email")
     ),
     
     # Right sidebar for strings and graphs
@@ -60,13 +60,13 @@ ui <- fluidPage(
         column(6, plotOutput("plot2"))
       ),
       
-      # Bottom panel
-      fluidRow(
-        h4("Email template with property tax numbers for the property"),
-        column(12, class  = "bottom-panel",
-               htmlOutput("bottom_string")
-        )
-      )
+      # # Bottom panel
+      # fluidRow(
+      #   h4("Email template with property tax numbers for the property"),
+      #   column(12, class  = "bottom-panel",
+      #          htmlOutput("bottom_string")
+      #   )
+      # )
     )
   )
 )
@@ -156,7 +156,7 @@ server <- function(input, output, session) {
                    prop_tax_new,
                    "</b> based on the current value of your home of $",
                    appraisal_new, ".<br/><br/>",
-                   "In 2024, your property taxes was $",
+                   "In 2024, your property taxes were $",
                    prop_tax_old,
                    ", and your home was valued at $",
                    appraisal_old, ".<br/><br/>",
@@ -285,47 +285,47 @@ server <- function(input, output, session) {
     bottom_string
   })
   
-  observeEvent(input$generate_email, {
-    df_home <- home_chooser()
-    
-    # Check if we have valid data
-    if (nrow(df_home) == 0) {
-      output$bottom_string <- renderText("Please select a valid address")
-      return()
-    }
-    
-    tax_data <- calculated_tax()
-    
-    prop_tax_new <- round(tax_data$new_tax)
-    prop_tax_old <- round(df_home[["property_tax_old"]])
-    appraisal_new <- round(df_home[["appraisal_new"]])
-    appraisal_old <- round(df_home[["appraisal_old"]])
-    prop_tax_diff <- round(tax_data$diff)
-    prop_perc_inc <- formatC(tax_data$perc_inc, digits = 1, format = "f")
-    
-    # adding commas within the numbers for easier reading
-    prop_tax_new <- prop_tax_new |> formatC(format="d", big.mark=",")
-    
-    email_string <- 
-      str_c(
-        "To Mayor Lauren Garret and the Hamden Legislative Council Members, <br><br>",
-        "I am writing as a homeowner in Hamden, CT, to urge you to reconsider the proposed mill rate of 46.61 ",
-        "and instead adopt a significantly lower rate—ideally in the mid-to-low 30s. This drastic increase in ",
-        "property taxes would place an overwhelming financial burden on residents, many of whom are already struggling",
-        "with rising costs in nearly every aspect of daily life, from exorbitant grocery prices to some of the highest utility rates in the nation. ",
-        "For my property, the proposed mill rate would increase my property taxes by $", prop_tax_diff, ", which is a ", prop_perc_inc, "% increase compared to my 2024 property taxes.<br><br>",
-        "Connecticut is already one of the most expensive states to live in, and Hamden ranks among its costliest towns. With the new property appraisals set to take effect in May 2025, many homeowners have seen their home values increase by 40% to 60%. Under the proposed mill rate, the average homeowner’s annual property tax bill would rise over 20%, adding hundreds of dollars to monthly expenses. This is not only an unsustainable financial strain on individual residents but also a significant threat to the town’s long-term economic health.<br><br>",
-        "A town thrives when it attracts and retains taxpaying homeowners who invest in and maintain their properties. Excessive property taxes will discourage new residents and businesses from moving to Hamden while forcing out long-time homeowners—especially retirees who may have paid off their mortgages but can no longer afford the tax burden. If this trend continues, Hamden risks declining property values, reduced homeownership, and an eroded sense of community.<br><br>",
-        "Homeowners cannot and should not bear the full weight of the town’s financial burdens. This level of taxation is untenable, unfair, and unsustainable. I urge you to consider the broader implications of this decision, not just for individual residents but for the future stability and prosperity of Hamden itself.<br><br>",
-        "Please know that we, the homeowners, are paying close attention. The outcome of this vote will not be forgotten when we cast our ballots in the primaries and general elections.<br>",
-        "I'm not alone in how I feel—check out this petition to see others who support this change.<br><br>",
-        "Sincerely,<br>",
-        "[Your Name]<br>",
-        "[Your Address]"
-      )
-    
-    output$bottom_string <- renderText(email_string)
-  })
+  # observeEvent(input$generate_email, {
+  #   df_home <- home_chooser()
+  #   
+  #   # Check if we have valid data
+  #   if (nrow(df_home) == 0) {
+  #     output$bottom_string <- renderText("Please select a valid address")
+  #     return()
+  #   }
+  #   
+  #   tax_data <- calculated_tax()
+  #   
+  #   prop_tax_new <- round(tax_data$new_tax)
+  #   prop_tax_old <- round(df_home[["property_tax_old"]])
+  #   appraisal_new <- round(df_home[["appraisal_new"]])
+  #   appraisal_old <- round(df_home[["appraisal_old"]])
+  #   prop_tax_diff <- round(tax_data$diff)
+  #   prop_perc_inc <- formatC(tax_data$perc_inc, digits = 1, format = "f")
+  #   
+  #   # adding commas within the numbers for easier reading
+  #   prop_tax_new <- prop_tax_new |> formatC(format="d", big.mark=",")
+  #   
+  #   email_string <- 
+  #     str_c(
+  #       "To Mayor Lauren Garret and the Hamden Legislative Council Members, <br><br>",
+  #       "I am writing as a homeowner in Hamden, CT, to urge you to reconsider the proposed mill rate of 46.61 ",
+  #       "and instead adopt a significantly lower rate—ideally in the mid-to-low 30s. This drastic increase in ",
+  #       "property taxes would place an overwhelming financial burden on residents, many of whom are already struggling",
+  #       "with rising costs in nearly every aspect of daily life, from exorbitant grocery prices to some of the highest utility rates in the nation. ",
+  #       "For my property, the proposed mill rate would increase my property taxes by $", prop_tax_diff, ", which is a ", prop_perc_inc, "% increase compared to my 2024 property taxes.<br><br>",
+  #       "Connecticut is already one of the most expensive states to live in, and Hamden ranks among its costliest towns. With the new property appraisals set to take effect in May 2025, many homeowners have seen their home values increase by 40% to 60%. Under the proposed mill rate, the average homeowner’s annual property tax bill would rise over 20%, adding hundreds of dollars to monthly expenses. This is not only an unsustainable financial strain on individual residents but also a significant threat to the town’s long-term economic health.<br><br>",
+  #       "A town thrives when it attracts and retains taxpaying homeowners who invest in and maintain their properties. Excessive property taxes will discourage new residents and businesses from moving to Hamden while forcing out long-time homeowners—especially retirees who may have paid off their mortgages but can no longer afford the tax burden. If this trend continues, Hamden risks declining property values, reduced homeownership, and an eroded sense of community.<br><br>",
+  #       "Homeowners cannot and should not bear the full weight of the town’s financial burdens. This level of taxation is untenable, unfair, and unsustainable. I urge you to consider the broader implications of this decision, not just for individual residents but for the future stability and prosperity of Hamden itself.<br><br>",
+  #       "Please know that we, the homeowners, are paying close attention. The outcome of this vote will not be forgotten when we cast our ballots in the primaries and general elections.<br>",
+  #       "I'm not alone in how I feel—check out this petition to see others who support this change.<br><br>",
+  #       "Sincerely,<br>",
+  #       "[Your Name]<br>",
+  #       "[Your Address]"
+  #     )
+  #   
+  #   output$bottom_string <- renderText(email_string)
+  # })
 }
 
 # Run the application 
