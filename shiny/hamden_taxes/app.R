@@ -23,9 +23,12 @@ ui <- fluidPage(
   fluidRow(
     column(12, class = "top-section",
            h3("Hamden Tax Calculator"),
-           p("This app lets you estimate your property taxes for the year 2025 based on the proposed mill rate of 46.61. It also shows you how much your taxes would have been in 2024 and the increase in taxes for 2025."),
+           p("This app lets you estimate your property taxes for the year 2025 based on the proposed mill rate of 46.61.
+             It also shows you how much your taxes would have been in 2024 and the increase in taxes for 2025.
+             The bottom h"),
            tags$li("On the left, you can either search for an address or choose one from the downdown menu"),
-           tags$li("'Enter mill rate' uses the current proposed mill rate. You can enter your own mill rate to see property taxes are affected.")
+           tags$li("'Enter mill rate' uses the current proposed mill rate. You can enter your own mill rate to see property taxes are affected."),
+           tags$li("Click the 'Generate Email' for a prewritten email template that includes numbers for the increase taxes for the property.")
     )
   ),
   
@@ -54,6 +57,15 @@ ui <- fluidPage(
       fluidRow(
         column(6, plotOutput("plot1")),
         column(6, plotOutput("plot2"))
+      ),
+      
+      # Bottom panel
+      fluidRow(
+        h4("Email text with property information"),
+        column(12, class = "bottom-panel",
+               h4("Additional Information"),
+               htmlOutput("bottom_string")
+        )
       )
     )
   )
@@ -140,9 +152,9 @@ server <- function(input, output, session) {
     appraisal_old <- appraisal_old |> formatC(format="d", big.mark=",")
     monthly_payment <- formatC(monthly_payment, digits = 2, format = "f")
     
-    string <- str_c("With a mill rate of ", input$mill_rate, ", your property taxes will be $",
+    string <- str_c("With a mill rate of ", input$mill_rate, ", your property taxes will be <b>$",
                    prop_tax_new,
-                   " based on the current value of your home of $",
+                   "</b> based on the current value of your home of $",
                    appraisal_new, ".<br/><br/>",
                    "In 2024, your property taxes was $",
                    prop_tax_old,
@@ -198,11 +210,14 @@ server <- function(input, output, session) {
       ggplot() +
       geom_col(aes(name, value, fill = group), width = 0.65) +
       xlab("") +
-      ylab("Property Tax") +
-      scale_fill_manual(values = c("#fc4b11", "#b1eb61")) +
+      ylab("") +
+      ggtitle("Property Taxes") + 
+      scale_fill_manual(values = c("#b1eb61", "#fc4b11")) +
       scale_y_continuous(breaks = seq(0, ymax_tax, by = 2000)) +
       theme_classic() +
-      theme(legend.position="none")
+      theme(legend.position="none") +
+      theme(axis.text = element_text(color = "black",size = 10)) +
+      scale_x_discrete(guide = guide_axis(angle = 45))
 
     p1
   })
@@ -243,11 +258,16 @@ server <- function(input, output, session) {
       ggplot() +
       geom_col(aes(name, value, fill = group), width = 0.65) +
       xlab("") +
-      ylab("Appraisal Value") +
+      ylab("") +
+      ggtitle("Appraisal Value") + 
       scale_fill_manual(values = c("#73b0d9", "#a9e1e6")) +
       scale_y_continuous(breaks = seq(0, ymax_appraisal, by = 50000)) +
       theme_classic() +
-      theme(legend.position="none")
+      theme(legend.position="none") +
+      theme(
+        axis.text = element_text(color = "black",size = 10)
+      )  +
+      scale_x_discrete(guide = guide_axis(angle = 45))
     
     p2
   })
