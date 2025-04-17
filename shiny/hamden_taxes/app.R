@@ -22,8 +22,8 @@ ui <- fluidPage(
   # Top bar for introduction text
   fluidRow(
     column(12, class = "top-section",
-           h3("Hamden Tax Calculator"),
-           p("This app lets you estimate your property taxes for the year 2025 based on the proposed mill rate of 46.61.
+           h3("Hamden Tax Calculator (updated on 4/16/2026)"),
+           p("This app lets you estimate your property taxes for the year 2025 based on the UPDATED proposed mill rate of 43.39.
              It also shows you how much your taxes would have been in 2024 and the increase in taxes for 2025."),
            tags$li("On the left, search for an address and then choose one from the dropdown menu"),
            tags$li("'Enter mill rate' uses the current proposed mill rate. You can enter your own mill rate to see property taxes are affected.")#,
@@ -42,8 +42,8 @@ ui <- fluidPage(
       selectInput("address", "Choose your address", choices = NULL),
       # Add mill rate input
       numericInput("mill_rate", "Enter mill rate:", 
-                   value = 46.61, min = 20, max = 100, step = 0.01),
-      helpText("Default proposed mill rate is 46.61")#,
+                   value = 43.39, min = 20, max = 100, step = 0.01),
+      helpText("Default proposed mill rate is 43.39")#,
       # Add action button
       # actionButton("generate_email", "Generate Email")
     ),
