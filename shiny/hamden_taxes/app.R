@@ -3,6 +3,19 @@ library(tidyverse)
 
 df <- read_rds("all_streets_data_4_19_25_cleaned.rds")
 
+proposed_mill_rate <- 52.16
+phase_in_year <- 1
+phase_in_term <- 4
+
+# adding phase in term language
+phase_in_year_natural_lang <- 
+  case_when(
+    phase_in_year == 1 ~ "1st",
+    phase_in_year == 2 ~ "2nd",
+    phase_in_year == 3 ~ "3rd",
+    phase_in_year == 4 ~ "4th"
+  )
+
 # Define UI
 ui <- fluidPage(
   # Custom CSS for padding
@@ -22,9 +35,15 @@ ui <- fluidPage(
   # Top bar for introduction text
   fluidRow(
     column(12, class = "top-section",
-           h3("Hamden Tax Calculator (updated on 4/16/2026)"),
-           p("This app lets you estimate your property taxes for the year 2025 based on the UPDATED proposed mill rate of 43.39.
-             It also shows you how much your taxes would have been in 2024 and the increase in taxes for 2025."),
+           h3("Hamden Tax Calculator (updated on 6/6/2026)"),
+           p(paste0("This app lets you estimate your property taxes for the year 2025 based on the UPDATED proposed mill rate of ",
+                    proposed_mill_rate,
+                    ", in the ",
+                    phase_in_year_natural_lang,
+                    " year of the ",
+                    phase_in_term,
+                    "-year phase-in. ",
+                    "It also shows you how much your taxes would have been in 2024 and the increase in taxes for 2025.")),
            tags$li("On the left, search for an address and then choose one from the dropdown menu"),
            tags$li("'Enter mill rate' uses the current proposed mill rate. You can enter your own mill rate to see property taxes are affected.")#,
            # tags$li("Click the 'Generate Email' for a prewritten email template that includes numbers for the increase taxes for the property.")
@@ -42,8 +61,8 @@ ui <- fluidPage(
       selectInput("address", "Choose your address", choices = NULL),
       # Add mill rate input
       numericInput("mill_rate", "Enter mill rate:", 
-                   value = 43.39, min = 20, max = 100, step = 0.01),
-      helpText("Default proposed mill rate is 43.39")#,
+                   value = proposed_mill_rate, min = 20, max = 100, step = 0.01),
+      helpText(paste0("Default proposed mill rate is ", proposed_mill_rate, "."))#,
       # Add action button
       # actionButton("generate_email", "Generate Email")
     ),
@@ -106,14 +125,14 @@ server <- function(input, output, session) {
   home_chooser <- reactive({df |>
       filter(address == input$address)
   })
-
+  
   # Calculate property tax based on chosen mill rate
   calculated_tax <- reactive({
     req(input$address)
     home_data <- home_chooser()
     
     # Calculate new tax based on input mill rate
-    new_tax <- (home_data$assessment_new / 1000) * input$mill_rate
+    new_tax <- (home_data$assessment_old + ((home_data$assessment_new - home_data$assessment_old)*(phase_in_year/phase_in_term))) * input$mill_rate / 1000
     
     # Original 2024 tax stays the same
     old_tax <- home_data$property_tax_old
@@ -126,7 +145,7 @@ server <- function(input, output, session) {
       monthly = (new_tax - old_tax) / 12
     )
   })
-
+  
   output$string <- renderText({
     req(input$address)  # Only proceed if an address is selected
     
@@ -152,21 +171,25 @@ server <- function(input, output, session) {
     appraisal_old <- appraisal_old |> formatC(format="d", big.mark=",")
     monthly_payment <- formatC(monthly_payment, digits = 2, format = "f")
     
-    string <- str_c("With a mill rate of ", input$mill_rate, ", your property taxes will be <b>$",
-                   prop_tax_new,
-                   "</b> based on the current value of your home of $",
-                   appraisal_new, ".<br/><br/>",
-                   "In 2024, your property taxes were $",
-                   prop_tax_old,
-                   ", and your home was valued at $",
-                   appraisal_old, ".<br/><br/>",
-                   "Your property taxes will increase by $",
-                   prop_tax_diff,
-                   ", which is a ",
-                   prop_perc_inc, 
-                   "% increase, and you will pay an extra $",
-                   monthly_payment,
-                   " per month in taxes.")
+    string <- str_c("With a mill rate of ", input$mill_rate, ", your property taxes in the ", 
+                    phase_in_year_natural_lang,
+                    " year of the ",
+                    phase_in_term,
+                    "-year phase-in, will be <b>$",
+                    prop_tax_new,
+                    "</b> based on the current value of your home of $",
+                    appraisal_new, ".<br/><br/>",
+                    "In 2024, your property taxes were $",
+                    prop_tax_old,
+                    ", and your home was valued at $",
+                    appraisal_old, ".<br/><br/>",
+                    "Your property taxes will increase by $",
+                    prop_tax_diff,
+                    ", which is a ",
+                    prop_perc_inc, 
+                    "% increase, and you will pay an extra $",
+                    monthly_payment,
+                    " per month in taxes.")
     string
   })
   
@@ -218,7 +241,7 @@ server <- function(input, output, session) {
       theme(legend.position="none") +
       theme(axis.text = element_text(color = "black",size = 10)) +
       scale_x_discrete(guide = guide_axis(angle = 45))
-
+    
     p1
   })
   
