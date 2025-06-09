@@ -3,25 +3,10 @@ library(tidyverse)
 
 df <- read_rds("all_streets_data_4_19_25_cleaned.rds")
 
-# Initial mill rate and target mill rate for phase-in
-initial_mill_rate <- 52
-target_mill_rate <- 41
+# Hard-coded mill rates for phase-in and no phase-in scenarios
+mill_rates <- c(51.78, 53.15, 51.30, 49.82)
+no_phase_in_mill_rates <- c(38, 45.44, 47.58, 49.82)
 phase_in_term <- 4
-annual_growth_rate <- 0.04
-
-# Calculate mill rates for each year of phase-in
-# First calculate the base decrease, then apply 4% annual growth
-mill_rates <- vector("numeric", phase_in_term)
-for (i in 1:phase_in_term) {
-  # Base decrease from initial to target over phase_in_term years
-  base_decrease_per_year <- (initial_mill_rate - target_mill_rate) / phase_in_term
-  
-  # Baseline mill rate without growth
-  base_mill_rate <- initial_mill_rate - base_decrease_per_year * (i-1)
-  
-  # Apply compound growth
-  mill_rates[i] <- base_mill_rate * (1 + annual_growth_rate)^(i-1)
-}
 
 # Define UI
 ui <- fluidPage(
@@ -54,14 +39,13 @@ ui <- fluidPage(
     column(12, class = "top-section",
            h3("Hamden Tax Calculator (updated on 6/6/2026)"),
            p(paste0("This app lets you estimate your property taxes for all 4 years of the phase-in period. ",
-                    "The mill rate starts with a base decrease from ", initial_mill_rate, " to ", target_mill_rate, 
-                    " over 4 years, plus a 4% annual growth rate to account for town budget increases. ",
+                    "The mill rates for each year are pre-determined by the town's phase-in plan. ",
                     "The resulting mill rates range from ", 
-                    round(mill_rates[1], 2), " in Year 1 to ", 
-                    round(mill_rates[4], 2), " in Year 4.")),
+                    mill_rates[1], " in Year 1 to ", 
+                    mill_rates[4], " in Year 4.")),
            tags$li("On the left, search for an address and then choose one from the dropdown menu"),
            tags$li("The app will display tax estimates for all 4 years of the phase-in period"),
-           tags$li("Mill rates incorporate both the phase-in reduction and 4% annual budget growth")
+           tags$li("Mill rates follow the town's predetermined values for each year")
     )
   ),
   
@@ -77,10 +61,10 @@ ui <- fluidPage(
       # Show the mill rates for each year
       h4("Mill Rates by Year"),
       tags$div(
-        tags$p(paste0("Year 1: ", round(mill_rates[1], 2))),
-        tags$p(paste0("Year 2: ", round(mill_rates[2], 2))),
-        tags$p(paste0("Year 3: ", round(mill_rates[3], 2))),
-        tags$p(paste0("Year 4: ", round(mill_rates[4], 2)))
+        tags$p(paste0("Year 1: ", mill_rates[1])),
+        tags$p(paste0("Year 2: ", mill_rates[2])),
+        tags$p(paste0("Year 3: ", mill_rates[3])),
+        tags$p(paste0("Year 4: ", mill_rates[4]))
       )
     ),
     
@@ -116,7 +100,7 @@ ui <- fluidPage(
       
       fluidRow(
         column(12, 
-               h4("Tax Comparison Across Years (No Phase-In, Starting Mill Rate: 41)"),
+               h4("Tax Comparison Across Years (No Phase-In)"),
                plotOutput("tax_comparison_no_phase_in")
         )
       )
@@ -393,14 +377,7 @@ server <- function(input, output, session) {
         return(NULL)
       }
       
-      # Calculate taxes with a starting mill rate of 41 that grows by 4% each year
-      no_phase_in_mill_rates <- vector("numeric", 4)
-      no_phase_in_mill_rates[1] <- 41
-      for (i in 2:4) {
-        no_phase_in_mill_rates[i] <- no_phase_in_mill_rates[1] * (1 + annual_growth_rate)^(i-1)
-      }
-      
-      # Calculate taxes for each year
+      # Calculate taxes using predefined mill rates
       no_phase_in_taxes <- vector("numeric", 4)
       for (i in 1:4) {
         no_phase_in_taxes[i] <- full_assessment * no_phase_in_mill_rates[i] / 1000
@@ -429,7 +406,7 @@ server <- function(input, output, session) {
                   vjust = -0.5, size = 3.5) +
         geom_text(aes(label = ifelse(is.na(Mill_Rate), "", paste0("Mill Rate: ", formatC(Mill_Rate, digits=2, format="f")))),
                   vjust = 1.5, size = 3) +
-        labs(title = "Property Tax Comparison (No Phase-In, Starting Mill Rate: 41)",
+        labs(title = "Property Tax Comparison (No Phase-In)",
              y = "Annual Property Tax ($)",
              x = "") +
         theme_minimal() +
