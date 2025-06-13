@@ -36,7 +36,7 @@ ui <- fluidPage(
         inputId = "phase_in",
         label = NULL,
         choices = c("Yes" = "yes", "No" = "no"),
-        selected = "no"
+        selected = "yes"
       ),
       radioButtons(
         inputId = "budget_option",
@@ -50,13 +50,15 @@ ui <- fluidPage(
         selected = "grow"
       ),
       textInput("fy2026", "FY2026", value = comma(310653000)),
-      textInput("fy2027", "FY2027", value = comma(324285756)),
+      textInput("fy2027", "FY2027", value = comma(325284756)),
       textInput("fy2028", "FY2028", value = comma(340605668)),
       textInput("fy2029", "FY2029", value = comma(356648195))
     ),
     mainPanel(
       h4("Entered Budgets"),
-      verbatimTextOutput("budgets")
+      verbatimTextOutput("budgets"),
+      h4("Mill Rates"),
+      tableOutput("mill_rate_table")
     )
   )
 )
@@ -64,7 +66,7 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   parse_input <- function(x) as.numeric(gsub(",", "", x))
   council_vals <- list(
-    grow     = c(310653000, 324285756, 340605668, 356648195),
+    grow     = c(310653000, 325284756, 340605668, 356648195),
     flat     = rep(310653000, 4),
     decrease = c(310653000, 304439940, 298351141, 292384118)
   )
@@ -154,6 +156,7 @@ server <- function(input, output, session) {
     }
   }, ignoreInit = TRUE)
   
+  # Show entered budgets
   output$budgets <- renderPrint({
     vals <- sapply(
       c(input$fy2026, input$fy2027, input$fy2028, input$fy2029),
@@ -162,6 +165,45 @@ server <- function(input, output, session) {
     names(vals) <- c("FY2026", "FY2027", "FY2028", "FY2029")
     print(vals)
   })
+  
+  # Calculate mill_rate and show as table
+  output$mill_rate_table <- renderTable({
+    # grand_list
+    grand_list <- if (input$phase_in == "no") {
+      rep(5726470270, 4)
+    } else {
+      c(4480700206, 4895956894, 5311213582, 5726470270)
+    }
+    
+    # Get FY budget values as numbers
+    fyvals <- sapply(
+      c(input$fy2026, input$fy2027, input$fy2028, input$fy2029),
+      parse_input
+    )
+    
+    # revenue_ask
+    if (input$fy2026_budget_choice == "council") {
+      revenue_ask <- numeric(4)
+      revenue_ask[1] <- 232000000
+      revenue_ask[2] <- 0.8 * fyvals[2]
+      revenue_ask[3] <- 0.8 * fyvals[3]
+      revenue_ask[4] <- 0.8 * fyvals[4]
+    } else { # mayor
+      revenue_ask <- numeric(4)
+      revenue_ask[1] <- 248471545
+      revenue_ask[2] <- 0.8 * fyvals[2]
+      revenue_ask[3] <- 0.8 * fyvals[3]
+      revenue_ask[4] <- 0.8 * fyvals[4]
+    }
+    
+    # mill_rate calculation
+    mill_rate <- revenue_ask / grand_list * 1000
+    df <- data.frame(
+      Year = c("FY2026", "FY2027", "FY2028", "FY2029"),
+      `Mill Rate` = round(mill_rate, 2)
+    )
+    df
+  }, striped = TRUE, spacing = "m", align = "c")
 }
 
 shinyApp(ui, server)
