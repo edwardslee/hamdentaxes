@@ -11,7 +11,7 @@ ui <- fluidPage(
   # ====== Customizable text above the tabs ======
   tags$div(
     id = "above-tabs-text",
-    h2("Hamden Tax Calculator (updated on 6/10/2025)"),
+    h2("Hamden Tax Calculator (updated on 6/15/2025)"),
     # ---- old two tab text
     # p("This app helps you estimate your property taxes for 2025-2026 (FY2026).
     # The calculator will estimate taxes based on different scenarios regarding the budget and the revaluation phase-in approved by the Legislative Council.
@@ -22,12 +22,13 @@ ui <- fluidPage(
     # p(strong("Please note"), " that the budget and tax situation is still not finalized, and these numbers are still subject to change.")
     
     # ---- one tab text
-    p("This app helps you estimate your property taxes for 2025-2026 (FY2026).
-    The calculator will estimate and compare taxes based on different scenarios with the budget and the revaluation phase-in approved by the Legislative Council (LC).
-    The budget approved by the council (", strong("The Council Budget"), ") includes a reduction of $8.8 million in expenses and an additional $9.1 million
-      in non-tax revenue compared to the budget proposed by Mayor Lauren Garrett (", strong("Garrett's Budget"), ").
-    The LC also approved a 4-year", strong("phase-in"),  "that defers the changes in property valuations over the next 4 years."),
-    p(strong("Please note"), " that the budget and tax situation is still not finalized, and these numbers are still subject to change.")
+    p("This app helps you estimate your property taxes for 2025-2026 (FY2026) and provides projections for the next four years (FY2026-FY2029).
+    The calculator will estimate and compare taxes based on different scenarios with the budget (e.g., Mayor's vs Council's Budget), the revaluation phase-in, and other options."),
+    tags$li("The first tab ", strong("2025 Property Tax Calculator"), " estimates property taxes for next year (FY2026) with and without a phase-in under the Council's Budget and taxes under the Mayor's Budget."),
+    tags$li("The second tab ", strong("2025–2028 Tax Estimator and Projections"), " attempts to estimate and project how property taxes will change for the next 4 years (FY2026-2029) under various potential budget outcomes (please read the explanations within this tab carefully)."),
+    br(),
+    p(strong("Please note"), " that the budget and tax situation is still not finalized, and these numbers are still subject to change."),
+    br()
   ),
   # ====== Tabs ======
   tabsetPanel(
@@ -38,7 +39,7 @@ ui <- fluidPage(
       # Add your custom UI elements here for the blank tab
       fluidRow(
         column(12, class = "top-section",
-               h3("2025-2026 (FY26) Property Tax Calculator"),
+               h3("2025–2026 (FY26) Property Tax Calculator"),
                p("Estimate your property taxes for the upcoming year (FY2026) based on three scenarios:"),
                tags$li(strong("Council budget with phase-in:"), "Property taxes with the council's budget that includes cuts with", strong("a 4-year phase-in")),
                tags$li(strong("Council budget without phase-in:"), "Property taxes with the council's budget that includes cuts with", strong("no"), "phase-in."),
@@ -89,7 +90,7 @@ ui <- fluidPage(
       )
     ),
     tabPanel(
-      title = "2025-2028 Propery Tax Estimator and Projections",
+      title = "2025–2028 Propery Tax Estimator and Projections",
       value = "tax_calculator_tab",
       # Custom CSS for padding
       tags$head(
@@ -113,11 +114,10 @@ ui <- fluidPage(
       # Top bar for introduction text
       fluidRow(
         column(12, class = "top-section",
-               h3("2025-2026 (FY26) Property Tax Calculator"),
+               h3("2025–2028 Propery Tax Estimator and Projections"),
                p("This calculator attempts to estimate your property taxes for the next four fiscal years under different budget scenarios that you can choose.
-           It starts with using either the Council's Budget or Mayor Garrett's Budget for FY2026 (i.e., the upcoming year), and then you can decide what the budget totals for the subsequent 3 years.
-           Then, you can choose if a 4-year phase-in of the revaluation is in place, and we provide 3 different scenarios of how the budget can change. 
-           You are also free to manually change the budget totals for each year with your own custom numbers."),
+           It starts with using either the Council's Budget or Mayor Garrett's Budget for FY2026 (i.e., the upcoming year). Then, you can choose if a 4-year phase-in of the revaluation is in place.
+           Lastly, you can decide what the budget totals are for the subsequent 3 years. We provide 3 different scenarios of how the budget can change, but you are also free to manually change the budget totals for each year with your own custom numbers."),
                br(),
                p("To estimate your taxes for the next four years:"),
                tags$li("Search and choose the address of your property"),
@@ -156,7 +156,7 @@ ui <- fluidPage(
           textInput("address_search", "Search for your address", ""),
           selectInput("address", "Choose your address", choices = NULL),
           br(),
-          h4("Choose the following options for the budget for 2026-2029"),
+          h4("Choose the following options for the budget for 2026–2029"),
           radioButtons(
             inputId = "fy2026_budget_choice",
             label = "Choose a proposed budget for FY2026",
@@ -195,19 +195,19 @@ ui <- fluidPage(
           h4("Property Tax Estimates by Year"),
           div(class = "output-padding",
               div(class = "year-panel",
-                  div(class = "year-title", "2025-2026 (FY2026)"),
+                  div(class = "year-title", "2025–2026 (FY2026)"),
                   htmlOutput("string_year1")
               ),
               div(class = "year-panel",
-                  div(class = "year-title", "2026-2027 (FY2027)"),
+                  div(class = "year-title", "2026–2027 (FY2027)"),
                   htmlOutput("string_year2")
               ),
               div(class = "year-panel",
-                  div(class = "year-title", "2027-2028 (FY2028)"),
+                  div(class = "year-title", "2027–2028 (FY2028)"),
                   htmlOutput("string_year3")
               ),
               div(class = "year-panel",
-                  div(class = "year-title", "2028-2029 (FY2029)"),
+                  div(class = "year-title", "2028–2029 (FY2029)"),
                   htmlOutput("string_year4")
               )
           ),
@@ -223,22 +223,25 @@ ui <- fluidPage(
       ),
       fluidRow(
         column(12, class = "top-section",
-               h3("Methodology"),
-               p("This section explains some of the numbers and assumptions used within the code of this calculator. If there are any errors or mistakes, please reach out with details."),
+               h4("Methodology"),
+               p("This section explains some of the numbers, formulas, methods, and assumptions used within the code of this calculator. The estimates and projections are naturally affected by these assumptions and choices, so they must be 
+                 evaluated in light of the methodology described below. No guarantee or warranty is provided with the use of this calculator. If there are any potential errors or mistakes, please reach out with details."),
                tags$li("Grand List (i.e., the net taxable property): the pre-revaluation grand list is  $4,065,443,518, and the post-revaluation grand list is $5,726,470,270. The latter is assumed to be the value of the grand list for all four years if there is no phase-in."),
                tags$li("Grand List for 4-year phase-in: the grand list is incrementally increased by 25% of the new valuation total with each year [Grand List of Year X = Pre Grand list + X/4 * (Post Grand List - Pre Grand List)]; 
                    namely, FY2026 grand list would be $4,480,700,206, FY2027 grand list would be  $4,895,956,894, FY2028 grand list would be  $5,311,213,582, and FY2029 grand list would be  $5,726,470,270."),
                tags$li("Property valuation: valuations for properties are obtained from Hamden's online database: https://gis.vgsi.com/Hamdenct/"),
                tags$li("Property valuation with or without phase-in: if no phase in is selected, the property valuations are the post-revaluation numbers for all four years, and if phase-in is selected, the property value is determined
-                   similarly to how the phase-in grand list is calculated."),
+                   similarly to how the phase-in grand list is calculated [Value of Year X = PreValue + X/4 * (PostValue - PreValue)]."),
                tags$li("Annual Property Tax: calculated with the formula Tax = Valuation * 0.7 * Mill Rate / 1000"),
                tags$li("Mayor's Budget: Mayor Garrett's budget is proposed to have a total of $313,653,000 with a mill rate of 43.39 and a total property tax revenue ask of $248,471,545."),
                tags$li("Council's Budget: The Council's budget is proposed to have a total of $304,790,424.29 with a mill rate of 52.16 (with the 4-year phase in), which imputes a total property tax revenue ask of $233,713,322.74."),
                tags$li("Total property tax revenue ask: the total property tax revenue ask is assumed to be 80% of the total budget. This assumption is based on historical data; FY2021 was 80.5%, FY2022 was 82.1%, FY2023 was 80.5%, FY2024 was 79.9%, and FY2025 was 75.2%."),
                tags$li("Certain mill rates are set manually according to reported values: Council's Budget with no phase-in was estimated to have a mill rate of 39.99, Council's Budget with phase-in was estimated to have a mill rate of 52.16 (both provided by the LC), and the Mayor's Budget with no phase-in was reported by the Mayor's office to be 43.39.
-                   Mill rates with no reported or published number are calculated by dividing the total property tax revenue ask by the grand list of that year and multiplying by 1000: mill rate = property tax revenue ask / grand list * 1000."),
+                   Mill rates with no reported or published numbers are calculated by dividing the total property tax revenue ask by the grand list of that year and multiplying by 1000: mill rate = property tax revenue ask / grand list * 1000."),
                tags$li("The default option of 'Budget grows 4.71% yearly' has an increase rate of 4.71% because this is the average yearly growth of budget from FY2021 to FY2026 (using the Mayor's proposed budget for FY2026)"),
-               tags$li("The option of 'Budget decreases 2% yearly' was chosen to have a decrease rate of 2% because it is a nice round number that seems to keep property taxes relatively flat.")
+               tags$li("The option of 'Budget decreases 2% yearly' was chosen to have a decrease rate of 2% because it is a nice round number that seems to keep property taxes relatively flat."),
+               tags$li("The budget values for FY2026 are deliberately not editable since there are currently two budget proposals in contention. However, it should be acknowledged that the 'Budget grows 4.71% yearly' option with the Council's Budget will naturally 
+                       have lower property taxes across all four years because the starting point for the budget at FY2026 is lower (which is a consequence of compounding interest). If you are more interested in comparing both budget with identical absolute yearly increases, do so by manually changing the budget numbers for FY2027–FY2029.")
         )
       )
     )
