@@ -41,9 +41,12 @@ ui <- fluidPage(
         column(12, class = "top-section",
                h3("2025–2026 (FY26) Property Tax Calculator"),
                p("Estimate your property taxes for the upcoming year (FY2026) based on three scenarios:"),
-               tags$li(strong("Council budget with phase-in:"), "Property taxes with the council's budget that includes cuts with", strong("a 4-year phase-in")),
+               tags$li(strong("Council budget with phase-in:"),
+                       "Property taxes with the council's budget that includes cuts with a 4-year phase-in",
+                       strong(" (budget approved by Council that was vetoed by Mayor Garrett).")),
                tags$li(strong("Council budget without phase-in:"), "Property taxes with the council's budget that includes cuts with", strong("no"), "phase-in."),
-               tags$li(strong("Garrett's budget:"), "Property taxes with ", strong("Mayor Lauren Garrett's original budget"),  " with no phase-in."), 
+               tags$li(strong("Garrett's budget with phase-in:"), "Property taxes with Mayor Lauren Garrett's original budget with a 4-year phase-in."),
+               tags$li(strong("Garrett's budget:"), "Property taxes with Mayor Lauren Garrett's original budget with no phase-in ", strong("(current budget from Mayor Garrett).")), 
                br(),
                p("To use the calculator:"), 
                tags$li("On the left, search for an address and then choose one from the dropdown menu"),
@@ -62,15 +65,18 @@ ui <- fluidPage(
           textInput("address_search_tab1", "Search for your address", ""),
           selectInput("address_tab1", "Choose your address", choices = NULL),
           # Add mill rate input
-          numericInput("mill_rate_tab1", "Enter mill rate for the Council Budget with phase-in:", 
+          numericInput("mill_rate_tab1", "Enter mill rate for the Council Budget with phase-in (budget vetoed by Mayor):", 
                        value = 52.16, min = 15, max = 100, step = 0.01),
           helpText("The estimated mill rate for the Council Budget with phase-in is 52.16 for FY26"),
           numericInput("mill_rate_nophase", "Enter mill rate for the Council Budget with no phase-in:", 
                        value = 39.99, min = 15, max = 100, step = 0.01),
           helpText("The estimated mill rate for the Council Budget with no phase-in is 39.99 for FY26"),
-          numericInput("mill_rate_original", "Enter mill rate for Garrett's Budget:", 
+          numericInput("mill_rate_original_phasein", "Enter mill rate for Garrett's Budget with phase-in:", 
+                       value = 55.45, min = 15, max = 100, step = 0.01),
+          helpText("The estimated mill rate for Garrett's Budget with phase-in is 43.39"),
+          numericInput("mill_rate_original", "Enter mill rate for Garrett's Budget (Mayor's current proposal):", 
                        value = 43.39, min = 15, max = 100, step = 0.01),
-          helpText("The estimated mill rate for Garrett's Budget with no phase-in is 43.39")#,
+          helpText("The estimated mill rate for Garrett's Budget with no phase-in is 43.39")
         ),
         
         # Right sidebar for strings and graphs
@@ -126,8 +132,8 @@ ui <- fluidPage(
                tags$li("Choose one of the convenient budget projection options", strong("or"), "choose your own total budget numbers for each of the three following years."),
                br(),
                p("Please note that these estimates are not official estimates from the town nor are they guaranteed to be accurate.
-           The methodology used for these calculations uses a set of broad assumptions (more details explained at the bottom). 
-           This tool is meant to illustrate the possible changes to your property taxes under different scenarios for the town budget over the next four years.")
+           The methodology for these calculations uses a set of broad assumptions (more details explained at the bottom of this tab). 
+           This tool is meant to illustrate the possible changes to your property taxes under different scenarios for the town budget over the next four years, but it is recommended to double check any of estimates with your own calculations.")
         )
       ),
       sidebarLayout(
@@ -239,7 +245,8 @@ ui <- fluidPage(
                tags$li("Certain mill rates are set manually according to reported values: Council's Budget with no phase-in was estimated to have a mill rate of 39.99, Council's Budget with phase-in was estimated to have a mill rate of 52.16 (both provided by the LC), and the Mayor's Budget with no phase-in was reported by the Mayor's office to be 43.39.
                    Mill rates with no reported or published numbers are calculated by dividing the total property tax revenue ask by the grand list of that year and multiplying by 1000: mill rate = property tax revenue ask / grand list * 1000."),
                tags$li("The default option of 'Budget grows 4.71% yearly' has an increase rate of 4.71% because this is the average yearly growth of budget from FY2021 to FY2026 (using the Mayor's proposed budget for FY2026)"),
-               tags$li("The option of 'Budget decreases 2% yearly' was chosen to have a decrease rate of 2% because it is a nice round number that seems to keep property taxes relatively flat."),
+               tags$li("The option of 'Budget decreases 2% yearly' was chosen to have a decrease rate of 2% because it is a nice round number that seems to keep property taxes relatively flat. This is acknowledged to be an unlikely scenario
+                       unless significant cuts to spending are implemented but illustrates the fiscal requirements to keeping property taxes approximately stable."),
                tags$li("The budget values for FY2026 are deliberately not editable since there are currently two budget proposals in contention. However, it should be acknowledged that the 'Budget grows 4.71% yearly' option with the Council's Budget will naturally 
                        have lower property taxes across all four years because the starting point for the budget at FY2026 is lower (which is a consequence of compounding interest). If you are more interested in comparing both budget with identical absolute yearly increases, do so by manually changing the budget numbers for FY2027–FY2029.")
         )
@@ -303,6 +310,9 @@ server <- function(input, output, session) {
     # original
     new_tax_original <- home_data$assessment_new * input$mill_rate_original / 1000
     
+    # garrett with phase_in
+    new_tax_garrett_phasein <- (0.25 * home_data$assessment_new + 0.75 * home_data$assessment_old) * input$mill_rate_original_phasein / 1000
+    
     # Original 2024 tax stays the same
     old_tax <- home_data$property_tax_old
     
@@ -310,16 +320,20 @@ server <- function(input, output, session) {
       new_tax_phasein = new_tax_phasein,
       new_tax_nophase = new_tax_nophase,
       new_tax_original = new_tax_original,
+      new_tax_original_phasein = new_tax_garrett_phasein,
       old_tax = old_tax,
       diff_phasein = new_tax_phasein - old_tax,
       diff_nophase = new_tax_nophase - old_tax,
       diff_original = new_tax_original - old_tax,
+      diff_original_phasein = new_tax_garrett_phasein - old_tax,
       perc_inc_phasein = (new_tax_phasein - old_tax) / old_tax * 100,
       monthly_phasein = (new_tax_phasein - old_tax) / 12,
       perc_inc_nophase = (new_tax_nophase - old_tax) / old_tax * 100,
       monthly_nophase = (new_tax_nophase - old_tax) / 12,
       perc_inc_original = (new_tax_original - old_tax) / old_tax * 100,
-      monthly_original = (new_tax_original - old_tax) / 12
+      monthly_original = (new_tax_original - old_tax) / 12,
+      perc_inc_original_phasein = (new_tax_garrett_phasein - old_tax) / old_tax * 100,
+      monthly_original_phasein = (new_tax_garrett_phasein - old_tax) / 12
     )
   })
   
@@ -336,38 +350,45 @@ server <- function(input, output, session) {
     prop_tax_new_phasein <- round(tax_data$new_tax_phasein)
     prop_tax_new_nophase <- round(tax_data$new_tax_nophase)
     prop_tax_new_original <- round(tax_data$new_tax_original)
+    prop_tax_new_original_phasein <- round(tax_data$new_tax_original_phasein)
     prop_tax_old <- round(df_home[["property_tax_old"]])
     appraisal_new <- round(df_home[["appraisal_new"]])
     appraisal_old <- round(df_home[["appraisal_old"]])
     prop_tax_diff_phasein <- round(tax_data$diff_phasein)
     prop_tax_diff_nophase <- round(tax_data$diff_nophase)
     prop_tax_diff_original <- round(tax_data$diff_original)
+    prop_tax_diff_original_phasein <- round(tax_data$diff_original_phasein)
     prop_perc_inc_phasein <- formatC(tax_data$perc_inc_phasein, digits = 1, format = "f")
     prop_perc_inc_nophase <- formatC(tax_data$perc_inc_nophase, digits = 1, format = "f")
     prop_perc_inc_original <- formatC(tax_data$perc_inc_original, digits = 1, format = "f")
+    prop_perc_inc_original_phasein <- formatC(tax_data$perc_inc_original_phasein, digits = 1, format = "f")
     monthly_payment_phasein <- round(tax_data$monthly_phasein)
     monthly_payment_nophase <- round(tax_data$monthly_nophase)
     monthly_payment_original <- round(tax_data$monthly_original)
+    monthly_payment_original_phasein <- round(tax_data$monthly_original_phasein)
     
     # adding commas within the numbers for easier reading
     prop_tax_new_phasein <- prop_tax_new_phasein |> formatC(format="d", big.mark=",")
     prop_tax_old <- prop_tax_old |> formatC(format="d", big.mark=",")
     prop_tax_new_nophase <- prop_tax_new_nophase |> formatC(format="d", big.mark=",")
     prop_tax_new_original <- prop_tax_new_original |> formatC(format="d", big.mark=",")
+    prop_tax_new_original_phasein <- prop_tax_new_original_phasein |> formatC(format="d", big.mark=",")
     appraisal_new <- appraisal_new |> formatC(format="d", big.mark=",")
     appraisal_old <- appraisal_old |> formatC(format="d", big.mark=",")
     monthly_payment_phasein <- formatC(monthly_payment_phasein, digits = 2, format = "f")
     monthly_payment_nophase <- formatC(monthly_payment_nophase, digits = 2, format = "f")
     monthly_payment_original <- formatC(monthly_payment_original, digits = 2, format = "f")
+    monthly_payment_original_phasein <- formatC(monthly_payment_original_phasein, digits = 2, format = "f")
+    
     
     if (prop_tax_diff_phasein > 0) {
       string <- str_c("In 2024-2025 (FY2025), your property taxes were $",
                       prop_tax_old,
-                      ", and your home had a valuation of $",
-                      appraisal_old, ".<br/><br/>",
+                      ", and your property had a valuation of $",
+                      appraisal_old, ". Your property's new valuation is $", appraisal_new, ".<br/><br/>", 
                       
                       # surplus + 4 year phase in
-                      "<b>Council budget with phase-in:</b>", " your property taxes in 2025-2026 (FY2026) are estimated to be <b>$",
+                      "<b>Council budget with phase-in (budget vetoed by Mayor Garrett):</b>", " your property taxes in 2025-2026 (FY2026) are estimated to be <b>$",
                       prop_tax_new_phasein, "</b>. Your property taxes would increase by $", prop_tax_diff_phasein,
                       ", which is a ", prop_perc_inc_phasein, "% increase, and you would pay an extra <b>$",
                       monthly_payment_phasein,"</b> per month in taxes. <br/><br/>",
@@ -378,8 +399,14 @@ server <- function(input, output, session) {
                       ", which is a ", prop_perc_inc_nophase, "% increase, and you would pay an extra <b>$",
                       monthly_payment_nophase, "</b> per month in taxes. <br/><br/>",
                       
+                      # original + phase in
+                      "<b>Mayor Lauren Garrett's Budget with phase-in:</b>", " your property taxes in 2025-2026 (FY2026) are estimated to be <b>$",
+                      prop_tax_new_original_phasein, "</b>. Your property taxes would increase by $", prop_tax_diff_original_phasein,
+                      ", which is a ", prop_perc_inc_original_phasein, "% increase, and you would pay an extra <b>$",
+                      monthly_payment_original_phasein, "</b> per month in taxes. <br/><br/>",
+                      
                       # original
-                      "<b>Mayor Lauren Garrett's Budget:</b>", " your property taxes in 2025-2026 (FY2026) are estimated to be <b>$",
+                      "<b>Mayor Lauren Garrett's Budget (current proposal):</b>", " your property taxes in 2025-2026 (FY2026) are estimated to be <b>$",
                       prop_tax_new_original, "</b>. Your property taxes would increase by $", prop_tax_diff_original,
                       ", which is a ", prop_perc_inc_original, "% increase, and you would pay an extra <b>$",
                       monthly_payment_original, "</b> per month in taxes. <br/><br/>"
@@ -431,18 +458,21 @@ server <- function(input, output, session) {
     prop_tax_new_phasein <- round(tax_data$new_tax_phasein)
     prop_tax_new_nophase <- round(tax_data$new_tax_nophase)
     prop_tax_new_original <- round(tax_data$new_tax_original)
+    prop_tax_new_original_phasein <- round(tax_data$new_tax_original_phasein)
 
     monthly_payment_phasein <- round(tax_data$monthly_phasein)
     monthly_payment_nophase <- round(tax_data$monthly_nophase)
     monthly_payment_original <- round(tax_data$monthly_original)
-    
+    monthly_payment_original_phasein <- round(tax_data$monthly_original_phasein)
     
     tryCatch({
       plot_data <- tibble(
-        Budget = c("Council + Phase-In", "Council, No Phase-In", "Garrett"), 
-        annual = c(prop_tax_new_phasein, prop_tax_new_nophase, prop_tax_new_original),
-        monthly = c(prop_tax_new_phasein, prop_tax_new_nophase, prop_tax_new_original) / 12,
+        Budget = as.factor(c("Council + Phase-In", "Council, No Phase-In", "Garrett + Phase-in", "Garrett, No Phase-In")), 
+        annual = c(prop_tax_new_phasein, prop_tax_new_nophase, prop_tax_new_original_phasein, prop_tax_new_original),
+        monthly = c(prop_tax_new_phasein, prop_tax_new_nophase, prop_tax_new_original_phasein, prop_tax_new_original) / 12,
       )
+      # browser()
+      
       ggplot(plot_data, aes(x = Budget, y = monthly)) +
         geom_col(aes(fill = Budget), width = 0.7) +
         geom_text(aes(label = paste0("$", formatC(monthly, format = "d", big.mark = ","))), 
@@ -457,7 +487,7 @@ server <- function(input, output, session) {
           axis.text = element_text(size = 10),
           panel.grid.major.x = element_blank()
         ) +
-        scale_fill_manual(values = c("#99cc67", "#aab75d", "#d35c3f"))
+        scale_fill_manual(values = c("#99cc67", "#aab75d", "#e28743", "#d35c3f"))
     }, error = function(e) {
       plot <- ggplot() + 
         annotate("text", x = 0.5, y = 0.5, label = paste("Error:", e$message)) +
