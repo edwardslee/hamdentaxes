@@ -64,6 +64,11 @@ ui <- fluidPage(
           # Using a textInput for search and a selectInput for selection
           textInput("address_search_tab1", "Search for your address", ""),
           selectInput("address_tab1", "Choose your address", choices = NULL),
+          # Include option to change the assessed value (for folks who disputed their reval)
+          numericInput("custom_assessment_tab1", 
+                       "Enter your assessed value (optional):", 
+                       value = NA, min = 0, step = 1000),
+          helpText("Leave blank to use the town’s official value from the database."),
           # Add mill rate input
           numericInput("mill_rate_tab1", "Enter mill rate for the Council Budget with phase-in (budget vetoed by Mayor):", 
                        value = 52.16, min = 15, max = 100, step = 0.01),
@@ -300,18 +305,27 @@ server <- function(input, output, session) {
     
     # Calculate new tax based on input mill rate
     
+    # Use the custom value for the reval if provided, otherwise we use the dataset value
+    assessment_new <- if (!is.na(input$custom_assessment_tab1) && input$custom_assessment_tab1 > 0) {
+      input$custom_assessment_tab1
+    } else {
+      home_data$assessment_new
+    }
+    
+    assessment_old <- home_data$assessment_old
+    
     # phase in + surplus
-    new_tax_phasein <- (0.25 * home_data$assessment_new + 0.75 * home_data$assessment_old) * input$mill_rate_tab1 / 1000
+    new_tax_phasein <- (0.25 * assessment_new + 0.75 * assessment_old) * input$mill_rate_tab1 / 1000
     
     # no phase in + surplus
     mill_rate_est <- input$mill_rate_nophase
-    new_tax_nophase <- home_data$assessment_new * mill_rate_est / 1000
+    new_tax_nophase <- assessment_new * mill_rate_est / 1000
     
     # original
-    new_tax_original <- home_data$assessment_new * input$mill_rate_original / 1000
+    new_tax_original <- assessment_new * input$mill_rate_original / 1000
     
     # garrett with phase_in
-    new_tax_garrett_phasein <- (0.25 * home_data$assessment_new + 0.75 * home_data$assessment_old) * input$mill_rate_original_phasein / 1000
+    new_tax_garrett_phasein <- (0.25 * assessment_new + 0.75 * assessment_old) * input$mill_rate_original_phasein / 1000
     
     # Original 2024 tax stays the same
     old_tax <- home_data$property_tax_old
