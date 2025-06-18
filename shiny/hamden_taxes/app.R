@@ -64,6 +64,11 @@ ui <- fluidPage(
           # Using a textInput for search and a selectInput for selection
           textInput("address_search_tab1", "Search for your address", ""),
           selectInput("address_tab1", "Choose your address", choices = NULL),
+          # Include option to change the assessed value (for folks who disputed their reval)
+          numericInput("custom_assessment_tab1", 
+                       "Enter your assessed value (optional):", 
+                       value = NA, min = 0, step = 1000),
+          helpText("Leave blank to use the town’s official value from the database."),
           # Add mill rate input
           numericInput("mill_rate_tab1", "Enter mill rate for the Council Budget with phase-in (budget vetoed by Mayor):", 
                        value = 52.16, min = 15, max = 100, step = 0.01),
@@ -161,6 +166,10 @@ ui <- fluidPage(
           h4("Find Your Address"),
           textInput("address_search", "Search for your address", ""),
           selectInput("address", "Choose your address", choices = NULL),
+          numericInput("custom_assessment_tab2", 
+                       "Enter your assessed value (optional):", 
+                       value = NA, min = 0, step = 1000),
+          helpText("Leave blank to use the town’s official value from the database."),
           br(),
           h4("Choose the following options for the budget for 2026–2029"),
           radioButtons(
@@ -300,18 +309,27 @@ server <- function(input, output, session) {
     
     # Calculate new tax based on input mill rate
     
+    # Use the custom value for the reval if provided, otherwise we use the dataset value
+    assessment_new <- if (!is.na(input$custom_assessment_tab1) && input$custom_assessment_tab1 > 0) {
+      input$custom_assessment_tab1
+    } else {
+      home_data$assessment_new
+    }
+    
+    assessment_old <- home_data$assessment_old
+    
     # phase in + surplus
-    new_tax_phasein <- (0.25 * home_data$assessment_new + 0.75 * home_data$assessment_old) * input$mill_rate_tab1 / 1000
+    new_tax_phasein <- (0.25 * assessment_new + 0.75 * assessment_old) * input$mill_rate_tab1 / 1000
     
     # no phase in + surplus
     mill_rate_est <- input$mill_rate_nophase
-    new_tax_nophase <- home_data$assessment_new * mill_rate_est / 1000
+    new_tax_nophase <- assessment_new * mill_rate_est / 1000
     
     # original
-    new_tax_original <- home_data$assessment_new * input$mill_rate_original / 1000
+    new_tax_original <- assessment_new * input$mill_rate_original / 1000
     
     # garrett with phase_in
-    new_tax_garrett_phasein <- (0.25 * home_data$assessment_new + 0.75 * home_data$assessment_old) * input$mill_rate_original_phasein / 1000
+    new_tax_garrett_phasein <- (0.25 * assessment_new + 0.75 * assessment_old) * input$mill_rate_original_phasein / 1000
     
     # Original 2024 tax stays the same
     old_tax <- home_data$property_tax_old
@@ -683,24 +701,24 @@ server <- function(input, output, session) {
     appraisal_old <- as.numeric(home_data$appraisal_old)
     appraisal_new <- as.numeric(home_data$appraisal_new)
     assessment_old <- as.numeric(home_data$assessment_old)
-    assessment_new <- as.numeric(home_data$assessment_new)
+    # Use custom if provided
+    assessment_new <- if (!is.na(input$custom_assessment_tab2) && input$custom_assessment_tab2 > 0) {
+      as.numeric(input$custom_assessment_tab2)
+    } else {
+      as.numeric(home_data$assessment_new)
+    }
     if(is.na(old_tax)) old_tax <- 0
     if(is.na(assessment_old)) assessment_old <- 0
     if(is.na(assessment_new)) assessment_new <- 0
     if(is.na(appraisal_old)) appraisal_old <- 0
     if(is.na(appraisal_new)) appraisal_new <- 0
     result <- list()
-    
-    
-    result <- list()
     bool_phase_in <- input$phase_in
-    
     
     if (bool_phase_in == "no") {
       for (year in 1:phase_in_term) {
         current_assessment <- assessment_new
         current_tax <- current_assessment * mill_rate()[year] / 1000
-        
         result[[paste0("year", year)]] <- list(
           tax = current_tax,
           mill_rate = mill_rate()[year],
@@ -712,19 +730,16 @@ server <- function(input, output, session) {
           else (current_tax - result[[paste0("year", year-1)]]$tax) / 12
         )
       }
-      
       result$baseline <- list(
         tax = old_tax,
         assessment = assessment_old,
         appraisal = appraisal_old
       )
-      
       return(result)
     } else {
       for (year in 1:phase_in_term) {
         current_assessment <- assessment_old + ((assessment_new - assessment_old) * (year/phase_in_term))
         current_tax <- current_assessment * mill_rate()[year] / 1000
-        
         result[[paste0("year", year)]] <- list(
           tax = current_tax,
           mill_rate = mill_rate()[year],
@@ -736,16 +751,13 @@ server <- function(input, output, session) {
           else (current_tax - result[[paste0("year", year-1)]]$tax) / 12
         )
       }
-      
       result$baseline <- list(
         tax = old_tax,
         assessment = assessment_old,
         appraisal = appraisal_old
       )
-      
       return(result)
     }
-    
   })
   
   generate_tax_string <- function(year_data, year_num, prev_year_name) {
